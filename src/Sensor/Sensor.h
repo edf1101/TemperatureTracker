@@ -17,6 +17,8 @@ public:
     };
 
     void setup();
+    void powerOff();
+    void wake();
 
     Data readData();
 
@@ -37,6 +39,7 @@ private:
     uint32_t compensateHumidity(int32_t adc_H);
 
 
+    void reset();
 };
 
 

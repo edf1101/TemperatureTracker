@@ -5,7 +5,7 @@
 #ifndef TEMPSENSOR_DISPLAY_H
 #define TEMPSENSOR_DISPLAY_H
 
-#include <U8g2lib.h>
+#include "U8g2lib.h"
 #include <avr/pgmspace.h>
 
 class Display {
@@ -14,7 +14,9 @@ public:
 
     void displayMain(float temperature, float humidity);
 
-    void displayChart(float *data, bool temp);
+    void displayChart(signed char *data, bool temp);
+
+    void powerDown();
 
 
 private:
