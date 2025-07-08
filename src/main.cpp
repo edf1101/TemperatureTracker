@@ -11,6 +11,8 @@
 #include "Display/Display.h"
 #include "Sensor/Sensor.h"
 #include "Power/PowerManager.h"
+#include "Logger/Logger.h"
+
 
 /* ---------- project configuration -------------------------------------- */
 constexpr bool USE_PMOS_RAIL = true;     // set false to bypass PMOS
@@ -21,6 +23,8 @@ constexpr uint32_t SLEEP_TIMEOUT_MS = 10'000;   // ms of inactivity
 /* ---------- globals ---------------------------------------------------- */
 Sensor sensor;
 Display display;
+Logger logger(0);       // 0-based sector index (0-3). Change if a sector is bad.
+
 
 uint32_t lastActivityStamp = 0;
 bool showMainScreen = true;
@@ -39,9 +43,12 @@ void setup() {
 
   display.setup();
   sensor.setup();
+  logger.begin();
 
   lastActivityStamp = millis();
 }
+
+long lastlog;
 
 void loop() {
   /* ---- handle button press ------------------------------------------ */
@@ -67,11 +74,17 @@ void loop() {
     display.displayMain(d.temperature, d.humidity);
   } else {
     /* demo chart */
-    static signed char demoData[28] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                                       9, 8, 7, 6, 5, 4, 3, 2, 1, -1, -2, -3, -4, -5,
-                                       -6, -7, -8, -9};
-    display.displayChart(demoData, true);
-  }
+    static int8_t chartBuf[Logger::NUM_SAMPLES];
 
+    /* example: show temperature history */
+    logger.readHumidity(chartBuf);
+    display.displayChart(chartBuf, /*temp=*/true);
+  }
+  if (millis() - lastlog > 1000) {
+    lastlog = millis();
+    /* ---- log data to EEPROM ------------------------------------------- */
+    logger.push(static_cast<int8_t>(round(d.temperature)),
+                static_cast<int8_t>(round(d.humidity)));
+  }
   delay(100);
 }

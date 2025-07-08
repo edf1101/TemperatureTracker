@@ -247,6 +247,9 @@ void Display::displayChart(signed char data[28], bool temp) {
     if (data[i] < minVal) minVal = data[i];
   }
 
+  maxVal += 2;
+  minVal -= 2;
+
   u8g2.clearBuffer();
 
   for (int i = 0; i < 28; i++) {
