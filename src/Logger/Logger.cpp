@@ -6,9 +6,10 @@ void Logger::begin(uint8_t sector)
   if (sector >= MAX_SECTORS) sector = 0;
   baseAddr = sector * SECTOR_SIZE;
 
-  /* Validate front pointer – if corrupt, reset to 0 */
-  uint8_t p = EEPROM.read(baseAddr);
-  if (p >= NUM_SAMPLES) writePtr(0);
+  // on start write all eeprom to unsigned char 0
+    for (uint16_t i = 0; i < SECTOR_SIZE; ++i) {
+        EEPROM.update(baseAddr + i, 0x00);
+    }
 }
 
 uint8_t Logger::readPtr() const        { return EEPROM.read(baseAddr); }
