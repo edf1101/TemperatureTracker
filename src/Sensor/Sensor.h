@@ -1,6 +1,8 @@
 /*
+ * Enhanced Sensor.h with better wake-up handling
  * Created by Ed Fillingham on 01/07/2025.
-*/
+ * Enhanced for better sleep/wake reliability
+ */
 
 #ifndef TEMPSENSOR_SENSOR_H
 #define TEMPSENSOR_SENSOR_H
@@ -19,6 +21,7 @@ public:
     void setup();
     void powerOff();
     void wake();
+    bool isReady(); // New method to check sensor status
 
     Data readData();
 
@@ -37,10 +40,7 @@ private:
     void readCalibrationData();
     int32_t compensateTemperature(int32_t adc_T);
     uint32_t compensateHumidity(int32_t adc_H);
-
-
     void reset();
 };
-
 
 #endif //TEMPSENSOR_SENSOR_H

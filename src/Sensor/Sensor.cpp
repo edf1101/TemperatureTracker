@@ -1,15 +1,14 @@
 /*
+ * Enhanced Sensor.cpp with better wake-up handling
  * Created by Ed Fillingham on 01/07/2025.
-*/
+ * Enhanced for better sleep/wake reliability
+ */
 
 #include "Sensor.h"
 #include <Wire.h>
 
 /**
  * Write a single byte value to a BME280 register.
- *
- * @param reg The register address to write to
- * @param val The value to write
  */
 void Sensor::writeRegister(uint8_t reg, uint8_t val) {
   Wire.beginTransmission(BME280_ADDR);
@@ -20,9 +19,6 @@ void Sensor::writeRegister(uint8_t reg, uint8_t val) {
 
 /**
  * Read an 8-bit unsigned value from the BME280.
- *
- * @param reg The register address to read from
- * @return The 8-bit value read
  */
 uint8_t Sensor::read8(uint8_t reg) {
   Wire.beginTransmission(BME280_ADDR);
@@ -34,9 +30,6 @@ uint8_t Sensor::read8(uint8_t reg) {
 
 /**
  * Read a 16-bit unsigned value (LSB first) from the BME280.
- *
- * @param reg The starting register address
- * @return The 16-bit value read
  */
 uint16_t Sensor::read16(uint8_t reg) {
   Wire.beginTransmission(BME280_ADDR);
@@ -50,17 +43,28 @@ uint16_t Sensor::read16(uint8_t reg) {
 
 /**
  * Read a 16-bit signed value from the BME280.
- *
- * @param reg The starting register address
- * @return The signed 16-bit value read
  */
 int16_t Sensor::readS16(uint8_t reg) {
   return (int16_t) read16(reg);
 }
 
 /**
+ * Check if BME280 is responding and ready
+ */
+bool Sensor::isReady() {
+  // Try to read chip ID register (should return 0x60)
+  for (int attempts = 0; attempts < 5; attempts++) {
+    uint8_t chipId = read8(0xD0);
+    if (chipId == 0x60) {
+      return true;
+    }
+    delay(10);
+  }
+  return false;
+}
+
+/**
  * Reads the BME280's factory calibration coefficients into class variables.
- * These are needed to perform compensation calculations for raw sensor readings.
  */
 void Sensor::readCalibrationData() {
   dig_T1 = read16(0x88);
@@ -76,10 +80,7 @@ void Sensor::readCalibrationData() {
 }
 
 /**
- * Applies the Bosch BME280 temperature compensation formula to raw temperature data.
- *
- * @param adc_T Raw temperature reading from sensor
- * @return Temperature in hundredths of a degree Celsius (°C × 100)
+ * Applies the Bosch BME280 temperature compensation formula.
  */
 int32_t Sensor::compensateTemperature(int32_t adc_T) {
   int32_t var1 = ((((adc_T >> 3) - ((int32_t) dig_T1 << 1))) *
@@ -90,14 +91,11 @@ int32_t Sensor::compensateTemperature(int32_t adc_T) {
                   ((int32_t) dig_T3)) >> 14;
 
   t_fine = var1 + var2;
-  return (t_fine * 5 + 128) >> 8; // Convert to °C × 100
+  return (t_fine * 5 + 128) >> 8;
 }
 
 /**
- * Applies the Bosch BME280 humidity compensation formula to raw humidity data.
- *
- * @param adc_H Raw humidity reading from sensor
- * @return Relative humidity in %RH × 1024
+ * Applies the Bosch BME280 humidity compensation formula.
  */
 uint32_t Sensor::compensateHumidity(int32_t adc_H) {
   int32_t v_x1 = t_fine - 76800;
@@ -108,71 +106,151 @@ uint32_t Sensor::compensateHumidity(int32_t adc_H) {
                (((v_x1 * ((int32_t) dig_H3)) >> 11) + 32768)) >> 10) + 2097152) *
             ((int32_t) dig_H2) + 8192) >> 14));
 
-  // Clamp and return final value
   v_x1 = v_x1 - (((((v_x1 >> 15) * (v_x1 >> 15)) >> 7) * ((int32_t) dig_H1)) >> 4);
   v_x1 = (v_x1 < 0) ? 0 : v_x1;
   v_x1 = (v_x1 > 419430400) ? 419430400 : v_x1;
-  return (uint32_t) (v_x1 >> 12); // Convert to %RH × 1024
+  return (uint32_t) (v_x1 >> 12);
 }
 
 /**
- * Initializes the BME280 by beginning I2C, waiting for power-on,
- * reading calibration values, and setting oversampling/config registers.
+ * Enhanced initialization with better error handling
  */
 void Sensor::setup() {
-  Wire.begin();    // Re-init bus cleanly
-  delay(100); // BME280 power-up delay
-  reset();
-  readCalibrationData(); // Load calibration values
+  Wire.begin();
+  delay(200); // Increased startup delay
+
+  // Verify sensor is responding
+  if (!isReady()) {
+    // If sensor not ready, try full reset sequence
+    reset();
+    delay(100);
+    if (!isReady()) {
+      // Still not ready - this is a problem
+      return;
+    }
+  }
+
+  readCalibrationData();
 
   // Set humidity oversampling ×1
   writeRegister(0xF2, 0x01);
   // Set temperature oversampling ×1 and forced mode
   writeRegister(0xF4, 0x25);
-}
 
-void Sensor::reset() {
-  // Send software reset command to BME280
-  writeRegister(0xE0, 0xB6);
-  delay(300); // Wait for reboot
+  // Wait for initial measurement to complete
+  delay(100);
 }
 
 /**
- * Reads temperature and humidity from the BME280 and returns the compensated values.
- *
- * @return A Sensor::Data struct containing the temperature (°C) and humidity (%RH)
+ * Enhanced reset with better timing
+ */
+void Sensor::reset() {
+  // Send software reset command
+  writeRegister(0xE0, 0xB6);
+  delay(500); // Increased reset delay
+}
+
+/**
+ * Enhanced wake function for post-sleep initialization
+ */
+void Sensor::wake() {
+  // Re-initialize I2C
+  Wire.begin();
+  delay(100);
+
+  // Check if sensor is responding
+  if (!isReady()) {
+    // Try reset if not responding
+    reset();
+    delay(100);
+    if (!isReady()) {
+      return; // Sensor not responding
+    }
+  }
+
+  // Re-read calibration data (may have been lost)
+  readCalibrationData();
+
+  // Reconfigure sensor
+  writeRegister(0xF2, 0x01); // Humidity oversampling
+  writeRegister(0xF4, 0x25); // Temperature oversampling + forced mode
+
+  delay(100);
+}
+
+/**
+ * Enhanced data reading with validation
  */
 Sensor::Data Sensor::readData() {
-  // Trigger a forced measurement
-  writeRegister(0xF4, 0x25);
-  delay(50); // Wait for conversion to complete
+  // Check sensor is ready before reading
+  if (!isReady()) {
+    // Try to wake/reinitialize
+    wake();
+    if (!isReady()) {
+      // Return error values
+      return {.temperature = 0.0f, .humidity = 0.0f};
+    }
+  }
 
-  // Read 8 bytes starting at 0xF7 (pressure[3], temp[3], humidity[2])
+  // Trigger forced measurement
+  writeRegister(0xF4, 0x25);
+  delay(100); // Increased conversion delay
+
+  // Check measurement is complete
+  uint8_t status = read8(0xF3);
+  int timeout = 0;
+  while ((status & 0x08) && timeout < 10) { // Wait for measurement complete
+    delay(10);
+    status = read8(0xF3);
+    timeout++;
+  }
+
+  // Read sensor data
   Wire.beginTransmission(BME280_ADDR);
   Wire.write(0xF7);
   Wire.endTransmission();
   Wire.requestFrom(BME280_ADDR, 8);
 
+  // Skip pressure readings
   Wire.read();
   Wire.read();
-  Wire.read(); // Discard pressure bytes
+  Wire.read();
+
+  // Read temperature
   int32_t adc_T = ((uint32_t) Wire.read() << 12) |
                   ((uint32_t) Wire.read() << 4) |
                   (Wire.read() >> 4);
+
+  // Read humidity
   int32_t adc_H = ((uint32_t) Wire.read() << 8) | Wire.read();
 
-  int32_t temp = compensateTemperature(adc_T); // Temp in °C × 100
-  uint32_t hum = compensateHumidity(adc_H);    // Humidity in % × 1024
+  // Validate readings (raw values shouldn't be 0x80000 or 0x8000)
+  if (adc_T == 0x80000 || adc_H == 0x8000) {
+    return {.temperature = 0.0f, .humidity = 0.0f};
+  }
 
-  // Package into data struct and return as floating point values
-  Sensor::Data data{
-          .temperature = temp / 100.0f, // °C
-          .humidity = hum / 1024.0f     // %RH
-  };
-  return data;
+  // Compensate values
+  int32_t temp = compensateTemperature(adc_T);
+  uint32_t hum = compensateHumidity(adc_H);
+
+  // Convert to float and validate ranges
+  float temperature = temp / 100.0f;
+  float humidity = hum / 1024.0f;
+
+  // Sanity check - BME280 ranges
+  if (temperature < -40.0f || temperature > 85.0f) {
+    temperature = 0.0f;
+  }
+  if (humidity < 0.0f || humidity > 100.0f) {
+    humidity = 0.0f;
+  }
+
+  return {.temperature = temperature, .humidity = humidity};
 }
 
 void Sensor::powerOff() {
+  // Put sensor in sleep mode before powering off
+  writeRegister(0xF4, 0x00); // Sleep mode
+  delay(10);
   Wire.end();
-
 }
