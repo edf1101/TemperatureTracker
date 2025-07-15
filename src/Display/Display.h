@@ -5,6 +5,8 @@
 #ifndef TEMPSENSOR_DISPLAY_H
 #define TEMPSENSOR_DISPLAY_H
 
+#ifdef MAIN_BOARD
+
 #include "U8g2lib.h"
 #include <avr/pgmspace.h>
 
@@ -37,5 +39,6 @@ private:
 
 };
 
+#endif // MAIN_BOARD
 
 #endif //TEMPSENSOR_DISPLAY_H

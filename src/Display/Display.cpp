@@ -2,6 +2,8 @@
  * Created by Ed Fillingham on 01/07/2025.
 */
 
+#ifdef MAIN_BOARD
+
 #include "Display.h"
 #include "math.h"
 #include "string.h"
@@ -319,3 +321,5 @@ char *Display::formatAxisLabels(int value) {
 void Display::powerDown() {
   u8g2.setPowerSave(1);
 }
+
+#endif

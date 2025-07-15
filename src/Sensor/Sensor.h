@@ -7,6 +7,9 @@
 #ifndef TEMPSENSOR_SENSOR_H
 #define TEMPSENSOR_SENSOR_H
 
+#ifdef MAIN_BOARD
+
+
 #include "Arduino.h"
 
 #define BME280_ADDR 0x76
@@ -42,5 +45,5 @@ private:
     uint32_t compensateHumidity(int32_t adc_H);
     void reset();
 };
-
+#endif
 #endif //TEMPSENSOR_SENSOR_H

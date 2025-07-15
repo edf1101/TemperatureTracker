@@ -4,6 +4,8 @@
  * Enhanced for better sleep/wake reliability
  */
 
+#ifdef MAIN_BOARD
+
 #include "Sensor.h"
 #include <Wire.h>
 
@@ -254,3 +256,4 @@ void Sensor::powerOff() {
   delay(10);
   Wire.end();
 }
+#endif

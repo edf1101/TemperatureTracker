@@ -1,27 +1,22 @@
 #include "Logger.h"
 #include <EEPROM.h>
+#ifdef MAIN_BOARD
 
-void Logger::begin(uint8_t sector)
-{
+void Logger::begin(uint8_t sector) {
   if (sector >= MAX_SECTORS) sector = 0;
   baseAddr = sector * SECTOR_SIZE;
-
-  // on start write all eeprom to unsigned char 0
-    for (uint16_t i = 0; i < SECTOR_SIZE; ++i) {
-        EEPROM.update(baseAddr + i, 0x00);
-    }
 }
 
-uint8_t Logger::readPtr() const        { return EEPROM.read(baseAddr); }
-void    Logger::writePtr(uint8_t p) const { EEPROM.update(baseAddr, p); }
+uint8_t Logger::readPtr() const { return EEPROM.read(baseAddr); }
 
-void Logger::push(int8_t temp, int8_t hum)
-{
+void Logger::writePtr(uint8_t p) const { EEPROM.update(baseAddr, p); }
+
+void Logger::push(int8_t temp, int8_t hum) {
   uint8_t p = readPtr();
   if (p >= NUM_SAMPLES) p = 0;
 
   EEPROM.update(offsTemp(p), static_cast<uint8_t>(temp));
-  EEPROM.update(offsHum (p), static_cast<uint8_t>(hum));
+  EEPROM.update(offsHum(p), static_cast<uint8_t>(hum));
 
   /* advance pointer and store it */
   p = (p + 1) % NUM_SAMPLES;
@@ -30,8 +25,7 @@ void Logger::push(int8_t temp, int8_t hum)
 
 static inline int8_t decode(uint8_t raw) { return raw == 0xFF ? 0 : static_cast<int8_t>(raw); }
 
-void Logger::readTemperature(int8_t *dst)
-{
+void Logger::readTemperature(int8_t *dst) {
   uint8_t p = readPtr();
   if (p >= NUM_SAMPLES) p = 0;
 
@@ -41,8 +35,7 @@ void Logger::readTemperature(int8_t *dst)
   }
 }
 
-void Logger::readHumidity(int8_t *dst)
-{
+void Logger::readHumidity(int8_t *dst) {
   uint8_t p = readPtr();
   if (p >= NUM_SAMPLES) p = 0;
 
@@ -51,3 +44,33 @@ void Logger::readHumidity(int8_t *dst)
     dst[i] = decode(EEPROM.read(offsHum(idx)));
   }
 }
+
+/**
+ * Reset the EEPROM sector to all zeroes.
+ */
+void Logger::resetEEPROM() {
+// on start write all eeprom to unsigned char 0
+  for (uint16_t i = 0; i < SECTOR_SIZE; ++i) {
+    EEPROM.update(baseAddr + i, 0x00);
+  }
+}
+
+/**
+ * Reset the EEPROM sector to all default values.
+ *
+ * @param defaultTemp The default temperature value to write to the EEPROM.
+ * @param defaultHum  The default humidity value to write to the EEPROM.
+ */
+void Logger::resetEEMPROM(int8_t defaultTemp, int8_t defaultHum) {
+  for (uint16_t i = 0; i < SECTOR_SIZE; ++i) {
+    if (i == 0) {
+      EEPROM.update(baseAddr + i, 0x00); // reset front pointer
+    } else if (i <= NUM_SAMPLES) {
+      EEPROM.update(baseAddr + i, static_cast<uint8_t>(defaultTemp)); // write default temperature
+    } else {
+      EEPROM.update(baseAddr + i, static_cast<uint8_t>(defaultHum)); // write default humidity
+    }
+  }
+}
+
+#endif

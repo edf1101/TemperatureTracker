@@ -31,6 +31,9 @@ public:
     void readTemperature(int8_t *dst);  // dst[28]
     void readHumidity   (int8_t *dst);  // dst[28]
 
+    void resetEEPROM();
+    void resetEEMPROM(int8_t defaultTemp = 0, int8_t defaultHum = 0);
+
 private:
     uint8_t baseAddr = 0;   // start address of chosen sector
 
