@@ -256,7 +256,7 @@ void Display::displayChart(signed char data[28], bool temp) {
 
   for (int i = 0; i < 28; i++) {
     // Scale bar height to 53px max
-    int barHeight = (int) ((float) (data[i] - minVal) / (float) (maxVal - minVal) * 53.0f);
+    int barHeight = (int) ((float) (data[27-i] - minVal) / (float) (maxVal - minVal) * 53.0f);
     if (barHeight < 0) barHeight = 0;
     if (barHeight > 64) barHeight = 64;
 
