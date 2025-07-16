@@ -25,22 +25,40 @@ public:
     void begin(uint8_t sector = 0);
 
     /** Push one sample; oldest data is overwritten when the buffer wraps. */
-    void push(int8_t temp, int8_t hum);
+    void push(float temp, float hum);
 
     /** Read the 28-entry history (oldest → newest). Empty cells return 0. */
-    void readTemperature(int8_t *dst);  // dst[28]
-    void readHumidity   (int8_t *dst);  // dst[28]
+    void readTemperature(float *dst);  // dst[28]
+    void readHumidity(float *dst);  // dst[28]
 
     void resetEEPROM();
+
     void resetEEMPROM(int8_t defaultTemp = 0, int8_t defaultHum = 0);
 
 private:
     uint8_t baseAddr = 0;   // start address of chosen sector
 
-    uint8_t  readPtr()             const;
-    void     writePtr(uint8_t ptr) const;
-    uint16_t offsTemp(uint8_t i)   const { return baseAddr + 1 + i; }
-    uint16_t offsHum (uint8_t i)   const { return baseAddr + 1 + NUM_SAMPLES + i; }
+    uint8_t readPtr() const;
+
+    void writePtr(uint8_t ptr) const;
+
+    uint16_t offsTemp(uint8_t i) const { return baseAddr + 1 + i; }
+
+    uint16_t offsHum(uint8_t i) const { return baseAddr + 1 + NUM_SAMPLES + i; }
+
+    static float maxTemp;
+    static float minTemp;
+    static float maxHum;
+    static float minHum;
+
+    static inline uint8_t encodeTemp(float temp);
+
+    static inline uint8_t encodeHum(float hum);
+
+    static inline float decodeTemp(uint8_t encodedTemp);
+
+    static inline float decodeHum(uint8_t encodedHum);
+
 };
 
 #endif //TEMPERATURETRACKER_LOGGER_H

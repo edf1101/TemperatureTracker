@@ -82,11 +82,11 @@ void MainController::updateDisplay() {
     Sensor::Data sensorData = sensor.readData(); // read the sensor data
     display.displayMain(sensorData.temperature, sensorData.humidity);
   } else if (currentScreen == TEMP_GRAPH) { // Show the temperature graph
-    static int8_t temperatureHistory[28];
+    static float temperatureHistory[28];
     logger.readTemperature(temperatureHistory);
     display.displayChart(temperatureHistory, true);
   } else if (currentScreen == HUMIDITY_GRAPH) { // Show the humidity graph
-    static int8_t humidityHistory[28];
+    static float humidityHistory[28];
     logger.readHumidity(humidityHistory);
     display.displayChart(humidityHistory, false);
   }
@@ -105,10 +105,7 @@ void MainController::powerOff() {
  */
 void MainController::takeMeasurement() {
   Sensor::Data sensorData = sensor.readData(); // read the sensor data
-  int8_t temperature = static_cast<int8_t>(sensorData.temperature); // get the temperature from the sensor data
-  int8_t humidity = static_cast<int8_t>(sensorData.humidity); // get the humidity from the sensor data
-
-  logger.push(temperature, humidity); // write the measurement to the logger
+  logger.push(sensorData.temperature, sensorData.humidity); // write the measurement to the logger
 }
 
 #endif

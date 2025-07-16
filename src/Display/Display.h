@@ -16,7 +16,7 @@ public:
 
     void displayMain(float temperature, float humidity);
 
-    void displayChart(signed char *data, bool temp);
+    void displayChart(float *data, bool temp);
 
     void powerDown();
 

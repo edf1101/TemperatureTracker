@@ -233,7 +233,7 @@ void Display::displayMain(float temperature, float humidity) {
   u8g2.sendBuffer();
 }
 
-void Display::displayChart(signed char data[28], bool temp) {
+void Display::displayChart(float data[28], bool temp) {
   /**
    * Draws a bar chart with 28 float values for temperature or humidity.
    *
@@ -242,8 +242,8 @@ void Display::displayChart(signed char data[28], bool temp) {
    */
 
   // Find min and max values in dataset
-  signed char maxVal = -127;
-  signed char minVal = 126;
+  float maxVal = -1000;
+  float minVal = 1000;
   for (int i = 0; i < 28; i++) {
     if (data[i] > maxVal) maxVal = data[i];
     if (data[i] < minVal) minVal = data[i];
@@ -271,13 +271,20 @@ void Display::displayChart(signed char data[28], bool temp) {
   drawStringScale(startPoint, 0, title, 1);
 
   // Y-axis labels
-  drawStringScale(0, 12, formatAxisLabels((int) maxVal), 1);
-  drawStringScale(0, 56, formatAxisLabels((int) minVal), 1);
+  drawStringScale(0, 12, formatAxisLabels((int) (0.5f+maxVal)), 1);
+  drawStringScale(0, 56, formatAxisLabels((int) (0.5f+minVal)), 1);
 
   // Axes lines
   u8g2.drawLine(16, 64, 16, 0);   // y-axis
   u8g2.drawLine(0, 64, 128, 64);  // x-axis
   u8g2.drawLine(16, 10, 128, 10); // top cap
+
+  // draw top 7days axis label box
+//  u8g2.setDrawColor(0);
+//  u8g2.drawBox(128-16,11,16, 10);
+//  u8g2.setDrawColor(1);
+  drawStringScale(128-16 +2, 1, "7D", 1);
+
 
   u8g2.sendBuffer();
 }
