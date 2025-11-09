@@ -19,7 +19,10 @@ public:
 
     void loop() override;
 
+    static void rtcInterruptHandler();
+
 private:
+
     constexpr static byte PUSH_BUTTON_PIN = 0; // pin for the push button
     constexpr static byte MEASUREMENT_INTERRUPT_PIN = 1; // pin for the measurement interrupt
     constexpr static byte POWER_CONTROL_PIN = 2; // pin for the power latch control pin
@@ -58,6 +61,8 @@ private:
     void updateDisplay(); // function to update the display based on the current screen state
 
     void takeMeasurement(); // function to take a measurement from the sensor
+
+    void setupRTC();
 };
 
 #endif

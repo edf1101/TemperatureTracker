@@ -214,6 +214,7 @@ char *Display::formattedHumString(float humidity) {
 
 void Display::setup() {
   // Initialize the display
+  u8g2.setI2CAddress(0x7A);
   u8g2.begin();
 }
 

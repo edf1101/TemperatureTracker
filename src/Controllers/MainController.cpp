@@ -41,6 +41,10 @@ void MainController::setup() {
     while (1); // The forever loop makes sure it doesn't go into the main loop
   }
 
+  // set up the RTC for periodic interrupts
+  setupRTC();
+  sei();
+
   lastActivity = millis(); // set the last activity time to now
 }
 
@@ -72,6 +76,43 @@ void MainController::loop() {
     measurementState = MEASURE_IN_MAIN; // set the measurement state to indicate a measurement was taken
     takeMeasurement(); // take a measurement from the sensor
   }
+}
+/**
+ * This is the C-style ISR.
+ * It's just a "wrapper" that calls our static class function.
+ */
+ISR(RTC_PIT_vect)
+{
+  MainController::rtcInterruptHandler(); // <-- CHANGED
+}
+
+/**
+ * This is the static C++ class function that does the real work.
+ * Being static, it can access static private members like POWER_CONTROL_PIN.
+ */
+void MainController::rtcInterruptHandler() // <-- NEW FUNCTION
+{
+  static volatile uint8_t totalSecondsOn = 0;
+  RTC.PITINTFLAGS = RTC_PI_bm; // Clear the interrupt flag
+
+  totalSecondsOn++;
+
+  // After 60 seconds, force power off.
+  if (totalSecondsOn >= 60) {
+    digitalWrite(POWER_CONTROL_PIN, LOW); // <-- This now works!
+  }
+}
+
+/**
+ * Configures the RTC's Periodic Interrupt Timer (PIT) to fire every 1 second.
+ */
+void MainController::setupRTC() {
+  RTC.CLKSEL = RTC_CLKSEL_INT32K_gc; // Use the 32.768kHz ULP oscillator
+  while (RTC.STATUS & RTC_CNTBUSY_bm); // Wait for sync
+
+  // Set period to 32768 cycles (1 second) and enable
+  RTC.PITCTRLA   = RTC_PITEN_bm | RTC_PERIOD_CYC32768_gc;
+  RTC.PITINTCTRL = RTC_PI_bm; // Enable the PIT interrupt
 }
 
 /**
