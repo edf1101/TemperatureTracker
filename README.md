@@ -2,7 +2,7 @@
 
 A small but featureful device to monitor temperature and humidity indoors. It uses a BME280 sensor to collect data and displays current and historical data on the OLED screen.
 
-![Indoor Weather Tracker](res/render.png)
+![Indoor Weather Tracker](res/img1.png)
 
 
 ## Features
@@ -42,7 +42,7 @@ wake up pulse.
 The schematic and PCB layout files are available in the `res` directory. The PCB is designed to be compact and fit within a small enclosure.
 The Fusion 360 design files are also included for 3D printing the enclosure.
 
-![Indoor Weather Tracker](res/img1.png)
+![Indoor Weather Tracker](res/render.png)
 
 ## Firmware
 The firmware for both microcontrollers is written in C++ using the Arduino framework.
