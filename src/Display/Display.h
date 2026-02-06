@@ -1,5 +1,5 @@
 /*
- * Created by Ed Fillingham on 01/07/2025.
+* Created by Ed Fillingham on 01/07/2025.
 */
 
 #ifndef TEMPSENSOR_DISPLAY_H
@@ -22,7 +22,8 @@ public:
 
 
 private:
-    static U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2;
+    // CHANGED: _F_ -> _1_ (Saves 896 bytes of RAM)
+    static U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2;
     static const uint8_t font6x8_digits[][6] PROGMEM;
 
     uint8_t charIndex(char c);

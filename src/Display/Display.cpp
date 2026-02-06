@@ -9,7 +9,7 @@
 #include "string.h"
 
 // Initialize U8G2 library for 128x64 I2C OLED (no reset pin used)
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C Display::u8g2 = U8G2_SSD1306_128X64_NONAME_F_HW_I2C(U8G2_R0, U8X8_PIN_NONE);
+U8G2_SSD1306_128X64_NONAME_1_HW_I2C Display::u8g2 = U8G2_SSD1306_128X64_NONAME_1_HW_I2C(U8G2_R0, U8X8_PIN_NONE);
 
 // Font bitmap definitions for custom characters 6x8 pixels
 const uint8_t Display::font6x8_digits[][6] PROGMEM = {
@@ -219,30 +219,28 @@ void Display::setup() {
 }
 
 void Display::displayMain(float temperature, float humidity) {
-  // Draw temperature and humidity to screen
-  u8g2.clearBuffer();
+  // FIXED: Using Page Buffer Loop for low memory
 
-  // T: temperature
-  drawCharScale(0, 0, 'T', 2);
-  drawStringScale(12, 0, formattedTempString(temperature), 4);
+  // Pre-calculate strings to save processing inside the loop
+  char tempStr[8];
+  char humStr[8];
+  strcpy(tempStr, formattedTempString(temperature));
+  strcpy(humStr, formattedHumString(humidity));
 
-  // H: humidity
-  drawCharScale(0, 36, 'H', 2);
-  drawStringScale(12, 36, formattedHumString(humidity), 4);
+  u8g2.firstPage();
+  do {
+      // T: temperature
+      drawCharScale(0, 0, 'T', 2);
+      drawStringScale(12, 0, tempStr, 4);
 
-  // Push buffer to screen
-  u8g2.sendBuffer();
+      // H: humidity
+      drawCharScale(0, 36, 'H', 2);
+      drawStringScale(12, 36, humStr, 4);
+  } while (u8g2.nextPage());
 }
 
 void Display::displayChart(float data[28], bool temp) {
-  /**
-   * Draws a bar chart with 28 float values for temperature or humidity.
-   *
-   * @param data Array of 28 float values to plot
-   * @param temp If true, it's a temperature chart; otherwise humidity
-   */
-
-  // Find min and max values in dataset
+  // 1. Calculate Min/Max OUTSIDE the loop (Optimization)
   float maxVal = -1000;
   float minVal = 1000;
   for (int i = 0; i < 28; i++) {
@@ -253,41 +251,44 @@ void Display::displayChart(float data[28], bool temp) {
   maxVal += 2;
   minVal -= 2;
 
-  u8g2.clearBuffer();
-
-  for (int i = 0; i < 28; i++) {
-    // Scale bar height to 53px max
-    int barHeight = (int) ((float) (data[27-i] - minVal) / (float) (maxVal - minVal) * 53.0f);
-    if (barHeight < 0) barHeight = 0;
-    if (barHeight > 64) barHeight = 64;
-
-    // Draw each bar: x offset starts at 16, each bar is 3px wide
-    u8g2.drawBox(16 + i * 4, 64 - barHeight, 3, barHeight);
-  }
-
-  // Title: TEMP or HUMID
+  // 2. Prepare Strings OUTSIDE the loop
   const char *title = temp ? "TEMP" : "HUMID";
   int strSize = (int) strlen(title) * 6;
   int startPoint = 72 - (strSize / 2);
-  drawStringScale(startPoint, 0, title, 1);
 
-  // Y-axis labels
-  drawStringScale(0, 12, formatAxisLabels((int) (0.5f+maxVal)), 1);
-  drawStringScale(0, 56, formatAxisLabels((int) (0.5f+minVal)), 1);
+  // Cache the axis labels
+  char maxLabel[8]; strcpy(maxLabel, formatAxisLabels((int)(0.5f + maxVal)));
+  char minLabel[8]; strcpy(minLabel, formatAxisLabels((int)(0.5f + minVal)));
 
-  // Axes lines
-  u8g2.drawLine(16, 64, 16, 0);   // y-axis
-  u8g2.drawLine(0, 64, 128, 64);  // x-axis
-  u8g2.drawLine(16, 10, 128, 10); // top cap
+  // 3. FIXED: Page Buffer Loop
+  u8g2.firstPage();
+  do {
+      for (int i = 0; i < 28; i++) {
+        // Scale bar height to 53px max
+        int barHeight = (int) ((float) (data[27-i] - minVal) / (float) (maxVal - minVal) * 53.0f);
+        if (barHeight < 0) barHeight = 0;
+        if (barHeight > 64) barHeight = 64;
 
-  // draw top 7days axis label box
-//  u8g2.setDrawColor(0);
-//  u8g2.drawBox(128-16,11,16, 10);
-//  u8g2.setDrawColor(1);
-  drawStringScale(128-16 +2, 1, "7D", 1);
+        // Draw each bar: x offset starts at 16, each bar is 3px wide
+        u8g2.drawBox(16 + i * 4, 64 - barHeight, 3, barHeight);
+      }
 
+      // Title
+      drawStringScale(startPoint, 0, title, 1);
 
-  u8g2.sendBuffer();
+      // Y-axis labels
+      drawStringScale(0, 12, maxLabel, 1);
+      drawStringScale(0, 56, minLabel, 1);
+
+      // Axes lines
+      u8g2.drawLine(16, 64, 16, 0);   // y-axis
+      u8g2.drawLine(0, 64, 128, 64);  // x-axis
+      u8g2.drawLine(16, 10, 128, 10); // top cap
+
+      // 7D Label
+      drawStringScale(128-16 +2, 1, "7D", 1);
+
+  } while (u8g2.nextPage());
 }
 
 char *Display::formatAxisLabels(int value) {

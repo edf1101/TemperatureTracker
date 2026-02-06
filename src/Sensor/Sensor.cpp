@@ -119,7 +119,6 @@ uint32_t Sensor::compensateHumidity(int32_t adc_H) {
  */
 void Sensor::setup() {
   Wire.begin();
-  Wire.setTimeout(200); // <-- ADD THIS LINE (50ms timeout)
   delay(200); // Increased startup delay
 
   // Verify sensor is responding
@@ -159,8 +158,6 @@ void Sensor::reset() {
 void Sensor::wake() {
   // Re-initialize I2C
   Wire.begin();
-  Wire.begin();
-  Wire.setTimeout(150); // <-- ADD THIS LINE (50ms timeout)
   delay(100);
 
   // Check if sensor is responding
